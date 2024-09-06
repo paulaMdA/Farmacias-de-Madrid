@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farmacias</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+    #map {
+        height: 400px;
+        display: none;
+    }
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <button id="cargarSelect">Cargar Select</button>
+    <div id="selectContainer"></div>
+    <div id="tablaDatosFarmacia"></div>
+    <div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+$(document).ready(function() {
+    $('#cargarSelect').click(function() {
+        cargarSelect();
+    });
+
+    function dibujarSelect(farmacias) {
+        var selectHtml = '<select id="selectFarmacias">';
+        selectHtml += '<option value="" disabled selected>Seleccione una farmacia</option>';
+        $.each(farmacias, function(index, farmacia) {
+            selectHtml += '<option value="' + index + '">' + farmacia.descripcion + '</option>';
+        });
+        selectHtml += '</select>';
+        $('#selectContainer').html(selectHtml);
+    }
+
+    function cargarSelect() {
+        $.ajax({
+            url: 'https://datos.comunidad.madrid/catalogo/dataset/0ac857b5-b747-4d4a-904f-7b6b4f275ead/resource/7a672aac-791c-48e8-afa6-e6b6d3a6b657/download/captadores_polen.json',
+            dataType: 'json',
+            success: function(data) {
+                var farmacias = data.data;
+                dibujarSelect(farmacias);
+                $('#selectFarmacias').change(function() {
+                    var selectedIndex = $(this).val();
+                    var farmaciaSeleccionada = farmacias[selectedIndex];
+                    mostrarDatosFarmacia(farmaciaSeleccionada);
+                    mostrarMapa(farmaciaSeleccionada);
+                });
+            }
+        });
+    }
+
+    function mostrarDatosFarmacia(farmacia) {
+        // Limpiar la tabla antes de agregar nuevos datos
+        $('#tablaDatosFarmacia').empty();
+
+        // Crear la tabla con los datos de la farmacia seleccionada
+        var tabla = $('<table>');
+        $.each(farmacia, function(key, value) {
+            tabla.append('<tr><td>' + key + '</td><td>' + value + '</td></tr>');
+        });
+
+        // Agregar la tabla al contenedor
+        $('#tablaDatosFarmacia').append(tabla);
+    }
+
+    function mostrarMapa(farmacia) {
+        // Mostrar el mapa
+        $('#map').show();
+
+        // Inicializar el mapa si aún no se ha inicializado
+        if (!window.mapInitialized) {
+            initMap();
+            window.mapInitialized = true;
+        }
+
+        // Actualizar el marcador en el mapa
+        var latitud = farmacia.lat_epsg4258;
+        var longitud = farmacia.long_epsg4258;
+
+        var marker = L.marker([latitud, longitud]).addTo(window.map);
+        window.map.setView([latitud, longitud], 12);
+    }
+
+    function initMap() {
+        window.map = L.map('map').setView([40.416775, -3.703790], 10); // Centrar el mapa en Madrid
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(window.map);
+    }
+});
+</script>
+</body>
+</html>
